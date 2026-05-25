@@ -10,7 +10,9 @@ export function getErrorMessage(error: unknown, fallback = '操作失败') {
   }
 
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { message?: string | string[] } | undefined
+    const data = error.response?.data as
+      | { message?: string | string[]; code?: number }
+      | undefined
     const message = data?.message
 
     if (typeof message === 'string' && message.trim()) {
