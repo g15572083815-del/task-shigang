@@ -1,4 +1,14 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { CategoryService } from './category.service';
 
 @Controller('category')
@@ -8,5 +18,55 @@ export class CategoryController {
   @Get(':categoryId/details')
   findDetailsByCategoryId(@Param('categoryId', ParseIntPipe) categoryId: number) {
     return this.categoryService.findDetailsByCategoryId(categoryId);
+  }
+
+  @Post()
+  create(
+    @Body()
+    body: {
+      versionId: number;
+      parentId: number;
+      code: string;
+      name: string;
+      remark?: string | null;
+    },
+  ) {
+    return this.categoryService.create(body);
+  }
+
+  @Put(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      code?: string;
+      name?: string;
+      remark?: string | null;
+    },
+  ) {
+    return this.categoryService.update(id, body);
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.categoryService.remove(id);
+  }
+
+  @Patch(':id/move')
+  move(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('direction') direction: 'up' | 'down',
+  ) {
+    return this.categoryService.move(id, direction);
+  }
+
+  @Patch(':id/discard')
+  discard(@Param('id', ParseIntPipe) id: number) {
+    return this.categoryService.discard(id);
+  }
+
+  @Patch(':id/enable')
+  enable(@Param('id', ParseIntPipe) id: number) {
+    return this.categoryService.enable(id);
   }
 }
