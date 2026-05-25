@@ -9,12 +9,46 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-model User {
+model Version {
   id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
+  name      String
+  enabled   Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories Category[]
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String
+  remark    String?
+
+  parentId  Int?
+  parent    Category? @relation("CategoryTree", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryTree")
+
+  versionId Int
+  version   Version @relation(fields: [versionId], references: [id])
+
+  status    String   // 启用 / 废弃
+  order     Int      // 排序
+
+  details   Detail[]
+}
+
+model Detail {
+  id          Int      @id @default(autoincrement())
+  code        String
+  name        String
+  unit        String
+
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  status      String
+  order       Int
 }
