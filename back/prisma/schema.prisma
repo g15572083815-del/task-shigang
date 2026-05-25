@@ -36,6 +36,7 @@ model Category {
 
   status    String   // 启用 / 废弃
   order     Int      // 排序
+  originalOrder Int? // 废弃前排序，用于恢复
 
   details   Detail[]
 }
@@ -54,4 +55,5 @@ model Detail {
 
   status      String
   order       Int
+  originalOrder Int?
 }
