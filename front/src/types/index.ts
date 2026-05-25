@@ -2,6 +2,7 @@ export interface Version {
   id: number
   name: string
   enabled: boolean
+  _isNew?: boolean
 }
 
 export interface Category {
@@ -12,6 +13,7 @@ export interface Category {
   parentId: number | null
   status: string
   order: number
+  _isNew?: boolean
 }
 
 export interface Detail {
@@ -24,4 +26,5 @@ export interface Detail {
   unit: string
   status: string
   order: number
+  _isNew?: boolean
 }
