@@ -32,6 +32,7 @@
       <vxe-grid
         v-bind="categoryGridOptions"
         v-loading="categoryLoading"
+        @current-change="onCategorySelect"
       />
 
     </div>
@@ -50,9 +51,11 @@
       </div>
 
       <vxe-table
+        v-loading="detailLoading"
         border
         height="500"
         :data="tableData"
+        :row-class-name="detailRowClassName"
       >
         <vxe-column field="code" title="编码" width="100" />
         <vxe-column field="name" title="项目名称" />
@@ -70,15 +73,19 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { VxeGridProps } from 'vxe-table'
+import { fetchDetails } from '../api/detail'
 import { fetchCategories, fetchVersions } from '../api/version'
-import type { Category, Version } from '../types'
+import type { Category, Detail, Version } from '../types'
 
 const versionId = ref<number>()
 const keyword = ref('')
 const versionLoading = ref(false)
 const categoryLoading = ref(false)
+const detailLoading = ref(false)
+const selectedCategoryId = ref<number>()
 
 const versionList = ref<Version[]>([])
+const tableData = ref<Detail[]>([])
 
 const categoryGridOptions = reactive<VxeGridProps<Category>>({
   border: true,
@@ -103,27 +110,41 @@ const categoryGridOptions = reactive<VxeGridProps<Category>>({
   data: [],
 })
 
-const tableData = ref([
-  {
-    code: '001-001',
-    name: '钢筋人工费',
-    content: '自卸汽车倒运至场内指定地点',
-    material: '装载机、压路机、挖掘机',
-    rule: '按实际完成工程量',
-    unit: '立方米',
-  },
-  {
-    code: '001-002',
-    name: '土方内倒',
-    content: '自卸汽车倒运至场内指定地点',
-    material: '装载机、压路机',
-    rule: '按实际完成工程量',
-    unit: '立方米',
-  },
-])
-
 const formatVersionLabel = (item: Version) => {
   return item.enabled ? item.name : `${item.name}（未启用）`
+}
+
+const detailRowClassName = ({ row }: { row: Detail }) => {
+  return row.status === '废弃' ? 'row-disabled' : ''
+}
+
+const loadDetailList = async (categoryId: number) => {
+  detailLoading.value = true
+  try {
+    const { data } = await fetchDetails(categoryId)
+    tableData.value = data
+  } catch {
+    tableData.value = []
+    ElMessage.error('加载明细失败')
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+const onCategorySelect = ({ row }: { row?: Category }) => {
+  if (!row) {
+    selectedCategoryId.value = undefined
+    tableData.value = []
+    return
+  }
+
+  selectedCategoryId.value = row.id
+  loadDetailList(row.id)
+}
+
+const clearDetails = () => {
+  selectedCategoryId.value = undefined
+  tableData.value = []
 }
 
 const loadCategoryList = async (id: number) => {
@@ -140,6 +161,7 @@ const loadCategoryList = async (id: number) => {
 }
 
 const onVersionChange = (id: number) => {
+  clearDetails()
   loadCategoryList(id)
 }
 
@@ -151,14 +173,17 @@ const loadVersionList = async () => {
 
     if (data.length > 0) {
       versionId.value = data[0].id
+      clearDetails()
       await loadCategoryList(data[0].id)
     } else {
       versionId.value = undefined
       categoryGridOptions.data = []
+      clearDetails()
     }
   } catch {
     versionList.value = []
     categoryGridOptions.data = []
+    clearDetails()
     ElMessage.error('加载版本失败')
   } finally {
     versionLoading.value = false

@@ -13,3 +13,15 @@ export interface Category {
   status: string
   order: number
 }
+
+export interface Detail {
+  id: number
+  code: string
+  name: string
+  content: string | null
+  material: string | null
+  rule: string | null
+  unit: string
+  status: string
+  order: number
+}

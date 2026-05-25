@@ -44,6 +44,9 @@ model Detail {
   id          Int      @id @default(autoincrement())
   code        String
   name        String
+  content     String?
+  material    String?
+  rule        String?
   unit        String
 
   categoryId  Int
