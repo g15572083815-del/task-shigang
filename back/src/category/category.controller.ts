@@ -9,6 +9,9 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
+import type { MoveDirection } from '../common/dto/move-direction.dto';
+import type { CreateCategoryDto } from './dto/create-category.dto';
+import type { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryService } from './category.service';
 
 @Controller('category')
@@ -21,29 +24,12 @@ export class CategoryController {
   }
 
   @Post()
-  create(
-    @Body()
-    body: {
-      versionId: number;
-      parentId: number;
-      code: string;
-      name: string;
-      remark?: string | null;
-    },
-  ) {
+  create(@Body() body: CreateCategoryDto) {
     return this.categoryService.create(body);
   }
 
   @Put(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      code?: string;
-      name?: string;
-      remark?: string | null;
-    },
-  ) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateCategoryDto) {
     return this.categoryService.update(id, body);
   }
 
@@ -55,7 +41,7 @@ export class CategoryController {
   @Patch(':id/move')
   move(
     @Param('id', ParseIntPipe) id: number,
-    @Body('direction') direction: 'up' | 'down',
+    @Body('direction') direction: MoveDirection,
   ) {
     return this.categoryService.move(id, direction);
   }

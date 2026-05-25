@@ -8,6 +8,9 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
+import type { MoveDirection } from '../common/dto/move-direction.dto';
+import type { CreateDetailDto } from './dto/create-detail.dto';
+import type { UpdateDetailDto } from './dto/update-detail.dto';
 import { DetailService } from './detail.service';
 
 @Controller('details')
@@ -15,34 +18,12 @@ export class DetailController {
   constructor(private readonly detailService: DetailService) {}
 
   @Post()
-  create(
-    @Body()
-    body: {
-      categoryId: number;
-      code: string;
-      name: string;
-      content?: string | null;
-      material?: string | null;
-      rule?: string | null;
-      unit: string;
-    },
-  ) {
+  create(@Body() body: CreateDetailDto) {
     return this.detailService.create(body);
   }
 
   @Put(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      code?: string;
-      name?: string;
-      content?: string | null;
-      material?: string | null;
-      rule?: string | null;
-      unit?: string;
-    },
-  ) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateDetailDto) {
     return this.detailService.update(id, body);
   }
 
@@ -54,7 +35,7 @@ export class DetailController {
   @Patch(':id/move')
   move(
     @Param('id', ParseIntPipe) id: number,
-    @Body('direction') direction: 'up' | 'down',
+    @Body('direction') direction: MoveDirection,
   ) {
     return this.detailService.move(id, direction);
   }

@@ -5,7 +5,10 @@ import {
 } from '@nestjs/common';
 import { getMaxOrder, isRootCategory } from '../common/category-tree.util';
 import { CategoryService } from '../category/category.service';
+import { MoveDirection } from '../common/dto/move-direction.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateDetailDto } from './dto/create-detail.dto';
+import { UpdateDetailDto } from './dto/update-detail.dto';
 
 const detailSelect = {
   id: true,
@@ -18,18 +21,6 @@ const detailSelect = {
   status: true,
   order: true,
 } as const;
-
-type CreateDetailDto = {
-  categoryId: number;
-  code: string;
-  name: string;
-  content?: string | null;
-  material?: string | null;
-  rule?: string | null;
-  unit: string;
-};
-
-type UpdateDetailDto = Partial<CreateDetailDto>;
 
 @Injectable()
 export class DetailService {
@@ -103,7 +94,7 @@ export class DetailService {
     return { success: true };
   }
 
-  async move(id: number, direction: 'up' | 'down') {
+  async move(id: number, direction: MoveDirection) {
     const detail = await this.getDetailOrThrow(id);
     const siblings = await this.prisma.detail.findMany({
       where: { categoryId: detail.categoryId },

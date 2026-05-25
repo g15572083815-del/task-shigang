@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateVersionDto } from './dto/create-version.dto';
+import { UpdateVersionDto } from './dto/update-version.dto';
 
 @Injectable()
 export class VersionService {
@@ -20,8 +22,8 @@ export class VersionService {
     });
   }
 
-  async create(name: string) {
-    const trimmed = name?.trim();
+  async create(dto: CreateVersionDto) {
+    const trimmed = dto.name?.trim();
     if (!trimmed) {
       throw new BadRequestException('名称不能为空');
     }
@@ -55,8 +57,8 @@ export class VersionService {
     });
   }
 
-  async update(id: number, name: string) {
-    const trimmed = name?.trim();
+  async update(id: number, dto: UpdateVersionDto) {
+    const trimmed = dto.name?.trim();
     if (!trimmed) {
       throw new BadRequestException('名称不能为空');
     }

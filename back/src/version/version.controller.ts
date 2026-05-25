@@ -9,6 +9,8 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
+import type { CreateVersionDto } from './dto/create-version.dto';
+import type { UpdateVersionDto } from './dto/update-version.dto';
 import { VersionService } from './version.service';
 
 @Controller('versions')
@@ -21,13 +23,13 @@ export class VersionController {
   }
 
   @Post()
-  create(@Body('name') name: string) {
-    return this.versionService.create(name);
+  create(@Body() body: CreateVersionDto) {
+    return this.versionService.create(body);
   }
 
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body('name') name: string) {
-    return this.versionService.update(id, name);
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateVersionDto) {
+    return this.versionService.update(id, body);
   }
 
   @Delete(':id')

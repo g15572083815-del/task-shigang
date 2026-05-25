@@ -11,6 +11,9 @@ import {
   isRootCategory,
 } from '../common/category-tree.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { MoveDirection } from '../common/dto/move-direction.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 const categorySelect = {
   id: true,
@@ -34,20 +37,6 @@ const detailSelect = {
   order: true,
   categoryId: true,
 } as const;
-
-type CreateCategoryDto = {
-  versionId: number;
-  parentId: number;
-  code: string;
-  name: string;
-  remark?: string | null;
-};
-
-type UpdateCategoryDto = {
-  code?: string;
-  name?: string;
-  remark?: string | null;
-};
 
 @Injectable()
 export class CategoryService {
@@ -164,7 +153,7 @@ export class CategoryService {
     return { success: true };
   }
 
-  async move(id: number, direction: 'up' | 'down') {
+  async move(id: number, direction: MoveDirection) {
     const category = await this.getCategoryOrThrow(id);
     if (isRootCategory(category)) {
       throw new BadRequestException('系统默认分类不可移动');
