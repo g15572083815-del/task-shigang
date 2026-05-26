@@ -25,18 +25,43 @@ const categorySelect = {
   order: true,
 } as const;
 
-const detailSelect = {
-  id: true,
-  code: true,
-  name: true,
-  content: true,
-  material: true,
-  rule: true,
-  unit: true,
-  status: true,
-  order: true,
-  categoryId: true,
-} as const;
+type CategoryDetailRow = {
+  id: number;
+  code: string;
+  name: string;
+  content: string | null;
+  material: string | null;
+  rule: string | null;
+  unit: string;
+  status: string;
+  order: number;
+};
+
+function toSafeNumber(value: unknown): number {
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  return Number(value);
+}
+
+function mapCategoryDetailRows(
+  rows: Record<string, unknown>[],
+): CategoryDetailRow[] {
+  return rows.map((row) => ({
+    id: toSafeNumber(row.id),
+    code: String(row.code),
+    name: String(row.name),
+    content: row.content == null ? null : String(row.content),
+    material: row.material == null ? null : String(row.material),
+    rule: row.rule == null ? null : String(row.rule),
+    unit: String(row.unit),
+    status: String(row.status),
+    order: toSafeNumber(row.order),
+  }));
+}
 
 @Injectable()
 export class CategoryService {
@@ -44,31 +69,48 @@ export class CategoryService {
 
   async findDetailsByCategoryId(categoryId: number) {
     const category = await this.getCategoryOrThrow(categoryId);
-    const categories = await this.getCategoryNodes(category.versionId);
-    const categoryIds = collectCategoryIds(categories, categoryId);
+    const versionId = category.versionId;
 
-    const details = await this.prisma.detail.findMany({
-      where: { categoryId: { in: categoryIds } },
-      select: detailSelect,
-    });
+    const rows = await this.prisma.$queryRaw<Record<string, unknown>[]>`
+      WITH RECURSIVE subtree AS (
+        SELECT
+          c.id,
+          ARRAY[c."order", c.id] AS sort_path
+        FROM "Category" c
+        WHERE c.id = ${categoryId}
+          AND c."versionId" = ${versionId}
 
-    const categoryOrder = new Map(
-      categoryIds.map((id, index) => [id, index]),
-    );
+        UNION ALL
 
-    return details
-      .sort((a, b) => {
-        const categoryIndexA = categoryOrder.get(a.categoryId) ?? 0;
-        const categoryIndexB = categoryOrder.get(b.categoryId) ?? 0;
-        if (categoryIndexA !== categoryIndexB) {
-          return categoryIndexA - categoryIndexB;
-        }
-        if (a.order !== b.order) {
-          return a.order - b.order;
-        }
-        return a.id - b.id;
-      })
-      .map(({ categoryId: _categoryId, ...detail }) => detail);
+        SELECT
+          c.id,
+          s.sort_path || ARRAY[c."order", c.id]
+        FROM "Category" c
+        INNER JOIN subtree s ON c."parentId" = s.id
+        WHERE c."versionId" = ${versionId}
+      ),
+      ordered_categories AS (
+        SELECT
+          id,
+          ROW_NUMBER() OVER (ORDER BY sort_path) AS tree_ord
+        FROM subtree
+      )
+      SELECT
+        d.id,
+        d.code,
+        d.name,
+        d.content,
+        d.material,
+        d.rule,
+        d.unit,
+        d.status,
+        d."order"
+      FROM "Detail" d
+      INNER JOIN ordered_categories oc ON d."categoryId" = oc.id
+      ORDER BY oc.tree_ord, d."order", d.id
+    `;
+
+    return mapCategoryDetailRows(rows);
   }
 
   async create(dto: CreateCategoryDto) {
@@ -82,10 +124,7 @@ export class CategoryService {
       throw new BadRequestException('父级分类无效');
     }
 
-    const siblings = await this.prisma.category.findMany({
-      where: { versionId: dto.versionId, parentId: dto.parentId },
-      select: { order: true },
-    });
+    const order = await this.getNextCategoryOrder(dto.versionId, dto.parentId);
 
     return this.prisma.category.create({
       data: {
@@ -95,7 +134,7 @@ export class CategoryService {
         name: dto.name.trim(),
         remark: dto.remark?.trim() ?? '',
         status: '启用',
-        order: getMaxOrder(siblings) + 1,
+        order,
       },
       select: categorySelect,
     });
@@ -302,6 +341,15 @@ export class CategoryService {
       orderBy: [{ order: 'asc' }, { id: 'asc' }],
       select: categorySelect,
     });
+  }
+
+  private async getNextCategoryOrder(versionId: number, parentId: number) {
+    const rows = await this.prisma.$queryRaw<Record<string, unknown>[]>`
+      SELECT COALESCE(MAX("order"), 0) + 1 AS next_order
+      FROM "Category"
+      WHERE "versionId" = ${versionId} AND "parentId" = ${parentId}
+    `;
+    return toSafeNumber(rows[0]?.next_order ?? 1);
   }
 
   private async getCategoryOrThrow(id: number) {
